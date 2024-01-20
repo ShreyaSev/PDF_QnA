@@ -64,18 +64,21 @@ def get_vectorstore(text_chunks,DIMENSION):
 def get_conversation_chain(vectorstore):
     llm = Ollama(model="llama2")
     memory = ConversationBufferMemory(
-        memory_key='chat_history', return_messages=True)
+        memory_key='chat_history', return_messages=True, output_key='answer')
     conversation_chain = ConversationalRetrievalChain.from_llm(
         llm=llm,
-        retriever=vectorstore.as_retriever(),
-        memory=memory
+        retriever=vectorstore.as_retriever(search_type = "similarity", search_kwargs = {"k":1}),
+        memory=memory,
+        return_source_documents = True
     )
     return conversation_chain
 
 
 def handle_userinput(user_question):
     response = st.session_state.conversation({'question': user_question})
+    print(response['source_documents'])
     st.session_state.chat_history = response['chat_history']
+    print(st.session_state['chat_history'])
 
     for i, message in enumerate(st.session_state.chat_history):
         if i % 2 == 0:
@@ -116,16 +119,17 @@ def main():
                     file_name = pdf_docs[0].name
                 # get pdf text
                 print(file_name)
-                documents = get_pdf_text(temp_file)
-                print("read pdf")
+                # documents = get_pdf_text(temp_file)
+                # print("read pdf")
 
-                # get the text chunks
-                text_chunks = split_docs(documents)
-                print("got chunks")
+                # # get the text chunks
+                # text_chunks = split_docs(documents)
+                # print("got chunks")
 
 
-                # create vector store
-                vectorstore = get_vectorstore(text_chunks=text_chunks, DIMENSION=DIMENSION)
+                # # create vector store
+                vectorstore = get_vectorstore(text_chunks="text_chunks", DIMENSION=DIMENSION)
+
                 print("got vectorstore")
 
                 # create conversation chain
