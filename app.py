@@ -1,5 +1,5 @@
 import streamlit as st
-#from dotenv import load_dotenv
+from dotenv import load_dotenv
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings, HuggingFaceInstructEmbeddings
@@ -12,9 +12,12 @@ from langchain.llms import HuggingFaceHub
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import OllamaEmbeddings
-import pinecone
-from langchain.vectorstores import Pinecone
+#import pinecone
+from pinecone import Pinecone
+#from langchain.vectorstores import Pinecone as lang_pinecone
+from langchain_pinecone import PineconeVectorStore
 from langchain_community.llms import Ollama
+import os
 
 
 
@@ -27,14 +30,15 @@ def create_index(index_name, dimension, docs, embeddings):
     # pinecone.create_index(name=index_name, metric="cosine", dimension=dimension)
     
     #index = Pinecone.from_documents(documents = docs, embedding=embeddings, index_name = index_name)
-    index = Pinecone.from_existing_index(index_name,embeddings)
+    index = PineconeVectorStore.from_existing_index(index_name,embeddings)
     return index
 
 
 
 def connect_db():
-    pinecone.init(
-    api_key="539e3f4e-1c1f-4894-a175-4d2abd5fbd31",
+    load_dotenv()
+    api_key = os.environ.get('PINECONE_API_KEY')
+    Pinecone(
     environment="gcp-starter"
     )
 
@@ -91,7 +95,6 @@ def handle_userinput(user_question):
 
 def main():
     DIMENSION = 4096
-    #load_dotenv()
     connect_db()
     st.set_page_config(page_title="Scientific Document Q&A",
                        page_icon=":books:")
@@ -118,7 +121,6 @@ def main():
                     file.write(pdf_docs[0].getvalue())
                     file_name = pdf_docs[0].name
                 # get pdf text
-                print(file_name)
                 # documents = get_pdf_text(temp_file)
                 # print("read pdf")
 
@@ -130,7 +132,6 @@ def main():
                 # # create vector store
                 vectorstore = get_vectorstore(text_chunks="text_chunks", DIMENSION=DIMENSION)
 
-                print("got vectorstore")
 
                 # create conversation chain
                 st.session_state.conversation = get_conversation_chain(
